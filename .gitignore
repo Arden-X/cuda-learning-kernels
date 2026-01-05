@@ -1,0 +1,22 @@
+# build
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+
+# cuda
+*.ptx
+*.cubin
+
+# ncu / profiling
+*.ncu-rep
+*.qdrep
+
+# editor
+.vscode/
+.idea/
+
+# misc
+*.log
+
