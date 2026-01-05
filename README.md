@@ -1,7 +1,7 @@
 # CUDA Learning Kernels
 
 This repository records my learning process of CUDA kernel development,
-from naive implementations to optimized versions, with detailed performance
+from naive implementations to optimized versions, with performance
 analysis using Nsight Compute (ncu).
 
 ## Goals
