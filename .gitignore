@@ -20,3 +20,13 @@ cmake-build-*/
 # misc
 *.log
 
+# build artifacts (binaries)
+vector_add_naive
+vector_add_v1
+vector_add_v2_gridstride
+vector_add_v3_gv
+
+# generic binaries
+*.out
+*.exe
+EOF

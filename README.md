@@ -19,3 +19,7 @@ analysis using Nsight Compute (ncu).
 - RMSNorm
 - Flash Attention
 
+## Study Notes
+- Experimental procedure：https://gcn4wojyc654.feishu.cn/docx/NZdKdUAd9ofYVsx4MfYcnIERnng?from=from_copylink
+- PMPP Notes：https://gcn4wojyc654.feishu.cn/wiki/JKwFwjcvfi8wqbk1SiBcEUW9nfg?from=from_copylink
+- ...
