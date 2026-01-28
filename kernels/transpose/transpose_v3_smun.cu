@@ -2,19 +2,79 @@
 #include <stdlib.h>
 #include <time.h>
 
-// 矩阵规模 9600 x 9600
+// 矩阵规模 1024 x 9600
 #define M 1024
 #define N 9600
-__global__ void transpose_naive(float *in, float *out)
-{
-    // 计算全局线程坐标 (x, y)
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    // 边界检查
-    if (x < N && y < M)
+#define TM 32
+#define TN 32
+
+template <int Tm, int Tn>
+__global__ void transpose_v3_smun(float *in, float *out)
+{
+    // 申请共享内存
+    __shared__ float SM_L[32][32];
+    // 读取阶段
+    int r0 = blockIdx.y * 32;
+    int c0 = blockIdx.x * 32;
+
+    int y = threadIdx.y;
+    int r = r0 + y;
+    int c = c0 + threadIdx.x;
+
+    if (c >= N)
+        return;
+    if (r < M)
     {
-        out[x * M + y] = in[y * N + x];
+        SM_L[y][y ^ threadIdx.x] = in[r * N + c];
+    }
+    y += blockDim.y;
+    r += blockDim.y;
+    if (r < M)
+    {
+        SM_L[y][y ^ threadIdx.x] = in[r * N + c];
+    }
+    y += blockDim.y;
+    r += blockDim.y;
+    if (r < M)
+    {
+        SM_L[y][y ^ threadIdx.x] = in[r * N + c];
+    }
+    y += blockDim.y;
+    r += blockDim.y;
+    if (r < M)
+    {
+        SM_L[y][y ^ threadIdx.x] = in[r * N + c];
+    }
+
+    __syncthreads(); // 同步线程块
+    // 写入阶段
+    r = r0 + threadIdx.x;
+    if (r >= M)
+        return;
+    y = threadIdx.y;
+    c = c0 + y;
+    if (c < N)
+    {
+        out[c * M + r] = SM_L[threadIdx.x][threadIdx.x ^ y];
+    }
+    y += blockDim.y;
+    c += blockDim.y;
+    if (c < N)
+    {
+        out[c * M + r] = SM_L[threadIdx.x][threadIdx.x ^ y];
+    }
+    y += blockDim.y;
+    c += blockDim.y;
+    if (c < N)
+    {
+        out[c * M + r] = SM_L[threadIdx.x][threadIdx.x ^ y];
+    }
+    y += blockDim.y;
+    c += blockDim.y;
+    if (c < N)
+    {
+        out[c * M + r] = SM_L[threadIdx.x][threadIdx.x ^ y];
     }
 }
 
@@ -78,12 +138,12 @@ int main()
     cudaMalloc((void **)&d_out, bytes);
 
     // TODO 2: 将数据从 Host 拷贝到 Device (cudaMemcpy HostToDevice)
-    // cudaMemcpy...
     cudaMemcpy(d_in, h_in, bytes, cudaMemcpyHostToDevice);
 
     // TODO 3: 配置 Kernel 参数 (dim3 block, dim3 grid)
     dim3 block(32, 8);
-    dim3 grid((N + block.x - 1) / block.x, (M + block.y - 1) / block.y);
+    // dim3 block(32, 8);
+    dim3 grid((N + TN - 1) / TN, (M + TM - 1) / TM);
 
     // TODO 4: 调用 Kernel 函数
 
@@ -92,7 +152,7 @@ int main()
     cudaEventCreate(&stop);
 
     cudaEventRecord(start);
-    transpose_naive<<<grid, block>>>(d_in, d_out);
+    transpose_v3_smun<TM, TN><<<grid, block>>>(d_in, d_out);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     float milliseconds = 0;
@@ -139,8 +199,8 @@ int main()
         double speedup = (cpu_time * 1000.0) / milliseconds;
 
         // ---------------- 打印格式化报告 ----------------
-        printf("\ntranspose_naive (%d*%d)\n", M, N);
-        printf("M=%d, N=%d, block=(%d,%d), grid=(%d,%d)\n", M, N, block.x, block.y, grid.x, grid.y);
+        printf("\ntranspose_v2 (%d*%d)\n", M, N);
+        printf("M=%d, N=%d, block=(%d,%d), Tile=(%d,%d), grid=(%d,%d)\n", M, N, block.x, block.y, TM, TN, grid.x, grid.y);
         printf("Correctness: PASS\n");
         printf("CPU time (single run): %.3f ms\n", cpu_time * 1000.0); // 转换为 ms
         printf("GPU kernel time (single run): %.3f ms\n", milliseconds);
